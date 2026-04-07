@@ -1,111 +1,135 @@
-import React, { useState, useEffect } from 'react';
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>桌球積分賽登記系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .score-btn { transition: transform 0.1s; touch-action: manipulation; }
+        .score-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    <div class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
+        <h1 class="text-center text-xl font-bold text-blue-400 mb-4">桌球積分賽登記</h1>
 
-const PingPongApp = () => {
-  // 選手資訊與比分狀態
-  const [p1, setP1] = useState("選手 A");
-  const [p2, setP2] = useState("選手 B");
-  const [scoreA, setScoreA] = useState(0);
-  const [scoreB, setScoreB] = useState(0);
-  const [sets, setSets] = useState([]); // 紀錄已結束的局數
-  const [winsA, setWinsA] = useState(0);
-  const [winsB, setWinsB] = useState(0);
-
-  // 根據規則判斷目前左側是誰 (自動換邊邏輯)
-  const isSecondSide = () => {
-    const currentSetNum = winsA + winsB + 1;
-    // 第 5 局 5 分換邊邏輯
-    if (currentSetNum === 5 && (scoreA >= 5 || scoreB >= 5)) return true;
-    // 偶數局換邊
-    return currentSetNum % 2 === 0;
-  };
-
-  const leftPlayer = isSecondSide() ? p2 : p1;
-  const rightPlayer = isSecondSide() ? p1 : p2;
-
-  // 判定單局結束
-  const checkSetOver = (sA, sB) => {
-    const hi = Math.max(sA, sB);
-    const lo = Math.min(sA, sB);
-    const diff = hi - lo;
-    return (hi === 11 && lo <= 9) || (hi > 11 && diff === 2);
-  };
-
-  const handleScore = (side) => {
-    if (winsA === 3 || winsB === 3) return;
-    
-    // 根據方位加分
-    if (side === 'left') {
-      isSecondSide() ? setScoreB(s => s + 1) : setScoreA(s => s + 1);
-    } else {
-      isSecondSide() ? setScoreA(s => s + 1) : setScoreB(s => s + 1);
-    }
-  };
-
-  const confirmSet = () => {
-    if (checkSetOver(scoreA, scoreB)) {
-      setSets([...sets, { a: scoreA, b: scoreB }]);
-      scoreA > scoreB ? setWinsA(w => w + 1) : setWinsB(w => w + 1);
-      setScoreA(0);
-      setScoreB(0);
-    } else {
-      alert("不符合結束規則！");
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-4 text-blue-400">桌球積分賽登記系統</h1>
-      
-      {/* 大比分顯示 */}
-      <div className="flex justify-around w-full max-w-md bg-gray-800 p-4 rounded-xl mb-6 border-2 border-blue-500">
-        <div className="text-center">
-          <p className="text-sm">{p1}</p>
-          <p className="text-4xl font-black">{winsA}</p>
+        <div class="bg-gray-800 rounded-xl p-4 flex justify-between items-center border-2 border-blue-600 mb-6">
+            <div class="text-center flex-1">
+                <div id="p1-name" class="text-sm text-gray-400">選手 A</div>
+                <div id="wins-a" class="text-5xl font-black">0</div>
+            </div>
+            <div class="text-2xl font-bold text-gray-600">VS</div>
+            <div class="text-center flex-1">
+                <div id="p2-name" class="text-sm text-gray-400">選手 B</div>
+                <div id="wins-b" class="text-5xl font-black">0</div>
+            </div>
         </div>
-        <div className="text-xl self-center font-bold text-gray-500">VS</div>
-        <div className="text-center">
-          <p className="text-sm">{p2}</p>
-          <p className="text-4xl font-black">{winsB}</p>
+
+        <div class="flex gap-4 h-80 mb-6">
+            <button onclick="addPoint('left')" id="btn-left" class="score-btn flex-1 bg-blue-600 rounded-3xl flex flex-col items-center justify-center shadow-lg">
+                <span id="label-left" class="text-lg mb-2">選手 A</span>
+                <span id="score-left" class="text-8xl font-bold">0</span>
+            </button>
+            <button onclick="addPoint('right')" id="btn-right" class="score-btn flex-1 bg-red-600 rounded-3xl flex flex-col items-center justify-center shadow-lg">
+                <span id="label-right" class="text-lg mb-2">選手 B</span>
+                <span id="score-right" class="text-8xl font-bold">0</span>
+            </button>
         </div>
-      </div>
 
-      {/* 互動計分區 (平板大按鈕) */}
-      <div className="flex w-full max-w-4xl gap-4 h-64 mb-6">
-        <button 
-          onClick={() => handleScore('left')}
-          className="flex-1 bg-blue-600 rounded-2xl active:bg-blue-800 flex flex-col items-center justify-center transition-all"
-        >
-          <span className="text-xl mb-2">{leftPlayer}</span>
-          <span className="text-7xl font-bold">{isSecondSide() ? scoreB : scoreA}</span>
-        </button>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="undo()" class="bg-gray-700 py-3 rounded-lg font-bold">Undo 撤銷</button>
+            <button onclick="confirmSet()" class="bg-green-600 py-3 rounded-lg font-bold">確認此局成績</button>
+        </div>
 
-        <button 
-          onClick={() => handleScore('right')}
-          className="flex-1 bg-red-600 rounded-2xl active:bg-red-800 flex flex-col items-center justify-center transition-all"
-        >
-          <span className="text-xl mb-2">{rightPlayer}</span>
-          <span className="text-7xl font-bold">{isSecondSide() ? scoreA : scoreB}</span>
-        </button>
-      </div>
-
-      {/* 控制台 */}
-      <div className="flex gap-4">
-        <button onClick={() => {setScoreA(0); setScoreB(0)}} className="bg-gray-600 px-6 py-3 rounded-lg">重設本局</button>
-        <button onClick={confirmSet} className="bg-green-600 px-10 py-3 rounded-lg font-bold text-xl">確認此局成績</button>
-      </div>
-
-      {/* 歷史局分表 */}
-      <div className="mt-8 w-full max-w-md">
-        <h3 className="text-gray-400 mb-2 text-center">歷史局分</h3>
-        {sets.map((s, i) => (
-          <div key={i} className="flex justify-between bg-gray-800 px-4 py-2 rounded mb-1">
-            <span>第 {i+1} 局</span>
-            <span className="font-mono">{s.a} : {s.b}</span>
-          </div>
-        ))}
-      </div>
+        <div class="bg-gray-800 rounded-lg p-3 flex-grow">
+            <h3 class="text-xs text-gray-500 uppercase tracking-widest mb-2 text-center">Set History 局分紀錄</h3>
+            <div id="history" class="space-y-2 text-center">
+                </div>
+        </div>
     </div>
-  );
-};
 
-export default PingPongApp;
+    <script>
+        // 核心邏輯
+        let p1 = "選手 A", p2 = "選手 B";
+        let scoreA = 0, scoreB = 0;
+        let winsA = 0, winsB = 0;
+        let history = [];
+        let scoreLog = []; // 用於 Undo 每一次得分
+
+        function updateUI() {
+            const currentSet = winsA + winsB + 1;
+            // 換邊邏輯: 1,3,5局 A左; 2,4局 B左 (第5局5分換邊簡化版)
+            let isSwapped = (currentSet % 2 === 0);
+            if (currentSet === 5 && (scoreA >= 5 || scoreB >= 5)) isSwapped = !isSwapped;
+
+            document.getElementById('wins-a').innerText = winsA;
+            document.getElementById('wins-b').innerText = winsB;
+            
+            if (!isSwapped) {
+                document.getElementById('label-left').innerText = p1;
+                document.getElementById('score-left').innerText = scoreA;
+                document.getElementById('label-right').innerText = p2;
+                document.getElementById('score-right').innerText = scoreB;
+            } else {
+                document.getElementById('label-left').innerText = p2;
+                document.getElementById('score-left').innerText = scoreB;
+                document.getElementById('label-right').innerText = p1;
+                document.getElementById('score-right').innerText = scoreA;
+            }
+        }
+
+        function addPoint(side) {
+            if (winsA >= 3 || winsB >= 3) return;
+            
+            const currentSet = winsA + winsB + 1;
+            let isSwapped = (currentSet % 2 === 0);
+            if (currentSet === 5 && (scoreA >= 5 || scoreB >= 5)) isSwapped = !isSwapped;
+
+            if (side === 'left') {
+                isSwapped ? scoreB++ : scoreA++;
+                scoreLog.push('left');
+            } else {
+                isSwapped ? scoreA++ : scoreB++;
+                scoreLog.push('right');
+            }
+            updateUI();
+        }
+
+        function undo() {
+            if (scoreLog.length === 0) return;
+            const last = scoreLog.pop();
+            const currentSet = winsA + winsB + 1;
+            let isSwapped = (currentSet % 2 === 0);
+            if (currentSet === 5 && (scoreA >= 5 || scoreB >= 5)) isSwapped = !isSwapped;
+
+            if (last === 'left') {
+                isSwapped ? scoreB-- : scoreA--;
+            } else {
+                isSwapped ? scoreA-- : scoreB--;
+            }
+            updateUI();
+        }
+
+        function confirmSet() {
+            const hi = Math.max(scoreA, scoreB);
+            const lo = Math.min(scoreA, scoreB);
+            if ((hi >= 11 && hi - lo >= 2) || (hi > 11 && hi - lo === 2)) {
+                history.push(`${scoreA} : ${scoreB}`);
+                scoreA > scoreB ? winsA++ : winsB++;
+                scoreA = 0; scoreB = 0; scoreLog = [];
+                
+                const histDiv = document.getElementById('history');
+                histDiv.innerHTML = history.map((s, i) => `<div>第 ${i+1} 局: ${s}</div>`).join('');
+                updateUI();
+                
+                if (winsA === 3 || winsB === 3) alert("比賽結束！");
+            } else {
+                alert("分數未達結束標準！");
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
