@@ -1,0 +1,111 @@
+import React, { useState, useEffect } from 'react';
+
+const PingPongApp = () => {
+  // 選手資訊與比分狀態
+  const [p1, setP1] = useState("選手 A");
+  const [p2, setP2] = useState("選手 B");
+  const [scoreA, setScoreA] = useState(0);
+  const [scoreB, setScoreB] = useState(0);
+  const [sets, setSets] = useState([]); // 紀錄已結束的局數
+  const [winsA, setWinsA] = useState(0);
+  const [winsB, setWinsB] = useState(0);
+
+  // 根據規則判斷目前左側是誰 (自動換邊邏輯)
+  const isSecondSide = () => {
+    const currentSetNum = winsA + winsB + 1;
+    // 第 5 局 5 分換邊邏輯
+    if (currentSetNum === 5 && (scoreA >= 5 || scoreB >= 5)) return true;
+    // 偶數局換邊
+    return currentSetNum % 2 === 0;
+  };
+
+  const leftPlayer = isSecondSide() ? p2 : p1;
+  const rightPlayer = isSecondSide() ? p1 : p2;
+
+  // 判定單局結束
+  const checkSetOver = (sA, sB) => {
+    const hi = Math.max(sA, sB);
+    const lo = Math.min(sA, sB);
+    const diff = hi - lo;
+    return (hi === 11 && lo <= 9) || (hi > 11 && diff === 2);
+  };
+
+  const handleScore = (side) => {
+    if (winsA === 3 || winsB === 3) return;
+    
+    // 根據方位加分
+    if (side === 'left') {
+      isSecondSide() ? setScoreB(s => s + 1) : setScoreA(s => s + 1);
+    } else {
+      isSecondSide() ? setScoreA(s => s + 1) : setScoreB(s => s + 1);
+    }
+  };
+
+  const confirmSet = () => {
+    if (checkSetOver(scoreA, scoreB)) {
+      setSets([...sets, { a: scoreA, b: scoreB }]);
+      scoreA > scoreB ? setWinsA(w => w + 1) : setWinsB(w => w + 1);
+      setScoreA(0);
+      setScoreB(0);
+    } else {
+      alert("不符合結束規則！");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col items-center">
+      <h1 className="text-2xl font-bold mb-4 text-blue-400">桌球積分賽登記系統</h1>
+      
+      {/* 大比分顯示 */}
+      <div className="flex justify-around w-full max-w-md bg-gray-800 p-4 rounded-xl mb-6 border-2 border-blue-500">
+        <div className="text-center">
+          <p className="text-sm">{p1}</p>
+          <p className="text-4xl font-black">{winsA}</p>
+        </div>
+        <div className="text-xl self-center font-bold text-gray-500">VS</div>
+        <div className="text-center">
+          <p className="text-sm">{p2}</p>
+          <p className="text-4xl font-black">{winsB}</p>
+        </div>
+      </div>
+
+      {/* 互動計分區 (平板大按鈕) */}
+      <div className="flex w-full max-w-4xl gap-4 h-64 mb-6">
+        <button 
+          onClick={() => handleScore('left')}
+          className="flex-1 bg-blue-600 rounded-2xl active:bg-blue-800 flex flex-col items-center justify-center transition-all"
+        >
+          <span className="text-xl mb-2">{leftPlayer}</span>
+          <span className="text-7xl font-bold">{isSecondSide() ? scoreB : scoreA}</span>
+        </button>
+
+        <button 
+          onClick={() => handleScore('right')}
+          className="flex-1 bg-red-600 rounded-2xl active:bg-red-800 flex flex-col items-center justify-center transition-all"
+        >
+          <span className="text-xl mb-2">{rightPlayer}</span>
+          <span className="text-7xl font-bold">{isSecondSide() ? scoreA : scoreB}</span>
+        </button>
+      </div>
+
+      {/* 控制台 */}
+      <div className="flex gap-4">
+        <button onClick={() => {setScoreA(0); setScoreB(0)}} className="bg-gray-600 px-6 py-3 rounded-lg">重設本局</button>
+        <button onClick={confirmSet} className="bg-green-600 px-10 py-3 rounded-lg font-bold text-xl">確認此局成績</button>
+      </div>
+
+      {/* 歷史局分表 */}
+      <div className="mt-8 w-full max-w-md">
+        <h3 className="text-gray-400 mb-2 text-center">歷史局分</h3>
+        {sets.map((s, i) => (
+          <div key={i} className="flex justify-between bg-gray-800 px-4 py-2 rounded mb-1">
+            <span>第 {i+1} 局</span>
+            <span className="font-mono">{s.a} : {s.b}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default PingPongApp;
