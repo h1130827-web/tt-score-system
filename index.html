@@ -3,93 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>專業桌球積分賽登記系統</title>
+    <title>專業桌球積分賽登記系統 (含歷史戰績)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .score-btn { transition: all 0.1s; touch-action: manipulation; }
         .score-btn:active:not(:disabled) { transform: scale(0.95); opacity: 0.8; }
         .score-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(50%); }
-        @keyframes pulse-yellow {
-            0%, 100% { background-color: #16a34a; }
-            50% { background-color: #ca8a04; }
-        }
+        @keyframes pulse-yellow { 0%, 100% { background-color: #16a34a; } 50% { background-color: #ca8a04; } }
         .animate-confirm { animation: pulse-yellow 1.5s infinite; }
+        .history-drawer { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans select-none">
+<body class="bg-slate-900 text-white font-sans select-none overflow-x-hidden">
 
-    <div id="setup-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-6">
+    <div id="setup-modal" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-6">
         <div class="bg-slate-800 p-8 rounded-3xl w-full max-w-sm border border-slate-700 shadow-2xl">
-            <h2 class="text-2xl font-black text-blue-400 mb-6 text-center">賽前選手設定</h2>
+            <h2 class="text-2xl font-black text-blue-400 mb-6 text-center italic">MATCH SETUP</h2>
             <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-slate-500 mb-1 ml-1">選手 A (第一局在左側)</label>
-                    <input type="text" id="setup-p1" placeholder="輸入姓名..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-500 mb-1 ml-1">選手 B (第一局在右側)</label>
-                    <input type="text" id="setup-p2" placeholder="輸入姓名..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500">
-                </div>
-                <button onclick="startMatch()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold text-lg mt-4 transition-all">開始比賽</button>
+                <input type="text" id="setup-p1" placeholder="選手 A 姓名" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500">
+                <input type="text" id="setup-p2" placeholder="選手 B 姓名" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500">
+                <button onclick="startMatch()" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg mt-4 shadow-lg shadow-blue-900/20">開始比賽</button>
+                <button onclick="toggleHistory(true)" class="w-full bg-slate-700 py-3 rounded-xl text-sm text-slate-300 font-bold tracking-widest">查看歷史戰績</button>
             </div>
         </div>
     </div>
 
+    <div id="history-drawer" class="fixed inset-0 bg-slate-950 z-[60] history-drawer translate-x-full flex flex-col p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black text-blue-400">歷史紀錄 (LOCAL)</h2>
+            <button onclick="toggleHistory(false)" class="text-slate-400 text-2xl">✕</button>
+        </div>
+        <div id="history-list" class="flex-grow overflow-y-auto space-y-4 pr-2">
+            </div>
+        <button onclick="clearAllHistory()" class="mt-6 text-red-500 text-xs text-center w-full uppercase tracking-tighter opacity-50">永久刪除所有歷史紀錄</button>
+    </div>
+
     <div class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
-        <div id="status-bar" class="text-center py-1 bg-slate-800 rounded-full text-[10px] font-bold text-blue-400 mb-4 tracking-widest uppercase">
-            Waiting for start...
+        <div id="status-bar" class="text-center py-1 bg-slate-800 rounded-full text-[10px] font-bold text-blue-400 mb-4 tracking-widest uppercase italic">READY</div>
+
+        <div class="bg-slate-800 rounded-2xl p-5 border-b-4 border-blue-500 shadow-2xl mb-6 relative">
+            <div class="flex justify-between items-center">
+                <div class="text-center flex-1">
+                    <input type="text" id="p1-display" class="bg-transparent text-center text-sm text-gray-400 w-full mb-1 focus:outline-none" readonly>
+                    <div id="wins-a" class="text-6xl font-black italic text-white">0</div>
+                </div>
+                <div class="px-4 text-xl font-black text-slate-600">VS</div>
+                <div class="text-center flex-1">
+                    <input type="text" id="p2-display" class="bg-transparent text-center text-sm text-gray-400 w-full mb-1 focus:outline-none" readonly>
+                    <div id="wins-b" class="text-6xl font-black italic text-white">0</div>
+                </div>
+            </div>
+            <div id="winner-tag" class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-4 py-1 rounded-full text-xs font-black hidden">WINNER</div>
         </div>
 
-        <div class="bg-slate-800 rounded-2xl p-5 flex justify-between items-center border-b-4 border-blue-500 shadow-2xl mb-6">
-            <div class="text-center flex-1">
-                <input type="text" id="p1-display" class="bg-transparent text-center text-sm text-gray-400 w-full focus:outline-none" onchange="updateUI()">
-                <div id="wins-a" class="text-6xl font-black italic text-white">0</div>
-            </div>
-            <div class="px-4 text-2xl font-black text-slate-600">VS</div>
-            <div class="text-center flex-1">
-                <input type="text" id="p2-display" class="bg-transparent text-center text-sm text-gray-400 w-full focus:outline-none" onchange="updateUI()">
-                <div id="wins-b" class="text-6xl font-black italic text-white">0</div>
-            </div>
-        </div>
-
-        <div class="flex gap-4 h-72 mb-6 text-white">
+        <div class="flex gap-4 h-72 mb-6">
             <button onclick="addPoint('left')" id="btn-left" class="score-btn flex-1 bg-blue-600 rounded-3xl flex flex-col items-center justify-center shadow-[0_8px_0_rgb(30,64,175)]">
-                <span id="label-left" class="text-base font-bold mb-2 opacity-80">---</span>
+                <span id="label-left" class="text-base font-bold mb-2 opacity-80 uppercase tracking-tighter">---</span>
                 <span id="score-left" class="text-8xl font-black">0</span>
             </button>
             <button onclick="addPoint('right')" id="btn-right" class="score-btn flex-1 bg-red-600 rounded-3xl flex flex-col items-center justify-center shadow-[0_8px_0_rgb(153,27,27)]">
-                <span id="label-right" class="text-base font-bold mb-2 opacity-80">---</span>
+                <span id="label-right" class="text-base font-bold mb-2 opacity-80 uppercase tracking-tighter">---</span>
                 <span id="score-right" class="text-8xl font-black">0</span>
             </button>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-6">
-            <button onclick="undo()" class="bg-slate-700 hover:bg-slate-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2">
-                <span>↩</span> Undo
-            </button>
-            <button id="confirm-btn" onclick="confirmSet()" class="bg-green-600 py-4 rounded-xl font-black text-lg shadow-lg">
-                確認此局
-            </button>
+            <button onclick="undo()" class="bg-slate-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg">↩ UNDO</button>
+            <button id="confirm-btn" onclick="confirmSet()" class="bg-green-600 py-4 rounded-xl font-black text-lg shadow-lg">NEXT SET</button>
         </div>
 
         <div class="bg-slate-800/50 rounded-2xl p-4 flex-grow border border-slate-700 overflow-y-auto">
-            <h3 class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-3 text-center">Set History 局分明細</h3>
-            <div id="history" class="space-y-2"></div>
+            <div id="history-sets" class="space-y-2"></div>
         </div>
         
-        <button onclick="resetAll()" class="mt-4 text-slate-600 text-[10px] hover:text-red-400 transition-colors uppercase tracking-widest">Reset Entire Match</button>
+        <div class="flex justify-between items-center mt-4">
+            <button onclick="toggleHistory(true)" class="text-blue-400 text-[10px] font-bold tracking-widest uppercase">History</button>
+            <button onclick="resetMatch()" class="text-slate-600 text-[10px] hover:text-red-400 uppercase tracking-widest">New Match</button>
+        </div>
     </div>
 
     <script>
-        let scoreA = 0, scoreB = 0;
-        let winsA = 0, winsB = 0;
-        let sets = [];
-        let log = [];
+        let scoreA = 0, scoreB = 0, winsA = 0, winsB = 0;
+        let setRecords = [], scoreLog = [];
 
-        // 初始化設定
+        // 初始化
         function startMatch() {
-            const name1 = document.getElementById('setup-p1').value.trim() || "選手 A";
-            const name2 = document.getElementById('setup-p2').value.trim() || "選手 B";
+            const name1 = document.getElementById('setup-p1').value.trim() || "Player A";
+            const name2 = document.getElementById('setup-p2').value.trim() || "Player B";
             document.getElementById('p1-display').value = name1;
             document.getElementById('p2-display').value = name2;
             document.getElementById('setup-modal').classList.add('hidden');
@@ -97,104 +97,133 @@
         }
 
         function getRules() {
-            const hi = Math.max(scoreA, scoreB);
-            const lo = Math.min(scoreA, scoreB);
-            return {
-                isOver: (hi >= 11 && (hi - lo >= 2)) || (hi > 11 && (hi - lo === 2)),
-                mustSwap: (winsA + winsB + 1 === 5 && hi >= 5)
-            };
+            const hi = Math.max(scoreA, scoreB), lo = Math.min(scoreA, scoreB);
+            return { isOver: (hi >= 11 && (hi - lo >= 2)) };
         }
 
         function updateUI() {
-            const p1 = document.getElementById('p1-display').value;
-            const p2 = document.getElementById('p2-display').value;
-            const currentSet = winsA + winsB + 1;
-            const rules = getRules();
-
-            let isSwapped = (currentSet % 2 === 0);
-            if (currentSet === 5 && (scoreA >= 5 || scoreB >= 5)) isSwapped = !isSwapped;
+            const p1 = document.getElementById('p1-display').value, p2 = document.getElementById('p2-display').value;
+            const curSet = winsA + winsB + 1;
+            let swapped = (curSet % 2 === 0);
+            if (curSet === 5 && (scoreA >= 5 || scoreB >= 5)) swapped = !swapped;
 
             document.getElementById('wins-a').innerText = winsA;
             document.getElementById('wins-b').innerText = winsB;
+            document.getElementById('label-left').innerText = swapped ? p2 : p1;
+            document.getElementById('score-left').innerText = swapped ? scoreB : scoreA;
+            document.getElementById('label-right').innerText = swapped ? p1 : p2;
+            document.getElementById('score-right').innerText = swapped ? scoreA : scoreB;
 
-            const labelL = document.getElementById('label-left');
-            const scoreL = document.getElementById('score-left');
-            const labelR = document.getElementById('label-right');
-            const scoreR = document.getElementById('score-right');
-
-            labelL.innerText = isSwapped ? p2 : p1;
-            scoreL.innerText = isSwapped ? scoreB : scoreA;
-            labelR.innerText = isSwapped ? p1 : p2;
-            scoreR.innerText = isSwapped ? scoreA : scoreB;
-
-            const statusBar = document.getElementById('status-bar');
-            const confirmBtn = document.getElementById('confirm-btn');
-            const btnL = document.getElementById('btn-left');
-            const btnR = document.getElementById('btn-right');
+            const rules = getRules(), status = document.getElementById('status-bar'), btnL = document.getElementById('btn-left'), btnR = document.getElementById('btn-right'), confBtn = document.getElementById('confirm-btn');
 
             if (winsA === 3 || winsB === 3) {
-                statusBar.innerText = "Match Over 比賽結束";
-                statusBar.classList.add('text-green-400');
+                status.innerText = "MATCH FINISHED";
                 btnL.disabled = btnR.disabled = true;
+                confBtn.disabled = true;
+                const winnerTag = document.getElementById('winner-tag');
+                winnerTag.classList.remove('hidden');
+                winnerTag.style.left = (winsA > winsB) ? '25%' : '75%';
+                saveMatchResult(); // 自動封存
             } else if (rules.isOver) {
-                statusBar.innerText = "Set Point - Confirm Now";
-                confirmBtn.classList.add('animate-confirm');
+                status.innerText = "SET READY TO CLOSE";
+                confBtn.classList.add('animate-confirm');
                 btnL.disabled = btnR.disabled = true;
             } else {
-                statusBar.innerText = `Set ${currentSet} - In Progress` + (rules.mustSwap ? " (Swapped)" : "");
-                confirmBtn.classList.remove('animate-confirm');
+                status.innerText = `SET ${curSet} IN PROGRESS`;
+                confBtn.classList.remove('animate-confirm');
                 btnL.disabled = btnR.disabled = false;
             }
         }
 
         function addPoint(side) {
-            const currentSet = winsA + winsB + 1;
-            let isSwapped = (currentSet % 2 === 0);
-            if (currentSet === 5 && (scoreA >= 5 || scoreB >= 5)) isSwapped = !isSwapped;
-
-            if (side === 'left') {
-                isSwapped ? scoreB++ : scoreA++;
-                log.push('left');
-            } else {
-                isSwapped ? scoreA++ : scoreB++;
-                log.push('right');
-            }
+            const curSet = winsA + winsB + 1;
+            let swapped = (curSet % 2 === 0);
+            if (curSet === 5 && (scoreA >= 5 || scoreB >= 5)) swapped = !swapped;
+            if (side === 'left') { swapped ? scoreB++ : scoreA++; scoreLog.push('left'); }
+            else { swapped ? scoreA++ : scoreB++; scoreLog.push('right'); }
             updateUI();
         }
 
         function undo() {
-            if (log.length === 0) return;
-            const last = log.pop();
-            const currentSet = winsA + winsB + 1;
-            let isSwapped = (currentSet % 2 === 0);
-            if (currentSet === 5 && (scoreA >= 5 || scoreB >= 5)) isSwapped = !isSwapped;
-
-            if (last === 'left') {
-                isSwapped ? scoreB-- : scoreA--;
-            } else {
-                isSwapped ? scoreA-- : scoreB--;
-            }
+            if (scoreLog.length === 0) return;
+            const last = scoreLog.pop();
+            const curSet = winsA + winsB + 1;
+            let swapped = (curSet % 2 === 0);
+            if (curSet === 5 && (scoreA >= 5 || scoreB >= 5)) swapped = !swapped;
+            if (last === 'left') { swapped ? scoreB-- : scoreA--; } else { swapped ? scoreA-- : scoreB--; }
             updateUI();
         }
 
         function confirmSet() {
             if (getRules().isOver) {
-                sets.push({ a: scoreA, b: scoreB });
+                setRecords.push({ a: scoreA, b: scoreB });
                 scoreA > scoreB ? winsA++ : winsB++;
-                scoreA = 0; scoreB = 0; log = [];
-                
-                document.getElementById('history').innerHTML = sets.map((s, i) => `
-                    <div class="flex justify-between items-center bg-slate-700/50 px-4 py-2 rounded-xl border border-slate-600">
-                        <span class="text-[10px] font-bold text-slate-400 font-mono">SET ${i+1}</span>
-                        <span class="font-mono font-bold ${s.a > s.b ? 'text-blue-400' : 'text-red-400'}">${s.a}:${s.b}</span>
-                    </div>
-                `).join('');
+                scoreA = 0; scoreB = 0; scoreLog = [];
+                renderSetHistory();
                 updateUI();
             }
         }
 
-        function resetAll() {
-            if (confirm("Reset everything?")) location.reload();
+        function renderSetHistory() {
+            document.getElementById('history-sets').innerHTML = setRecords.map((s, i) => `
+                <div class="flex justify-between items-center bg-slate-700/30 px-4 py-2 rounded-xl border border-slate-700">
+                    <span class="text-[9px] font-bold text-slate-500">SET ${i+1}</span>
+                    <span class="font-mono font-bold ${s.a > s.b ? 'text-blue-400' : 'text-red-400'}">${s.a}:${s.b}</span>
+                </div>`).join('');
+        }
+
+        // 歷史戰績邏輯 (LocalStorage)
+        function saveMatchResult() {
+            const matchData = {
+                id: Date.now(),
+                p1: document.getElementById('p1-display').value,
+                p2: document.getElementById('p2-display').value,
+                wA: winsA,
+                wB: winsB,
+                details: [...setRecords],
+                time: new Date().toLocaleString()
+            };
+            let history = JSON.parse(localStorage.getItem('tt_history') || '[]');
+            // 防止重複儲存同一場比賽
+            if (history.length > 0 && history[0].id > Date.now() - 5000) return; 
+            history.unshift(matchData);
+            localStorage.setItem('tt_history', JSON.stringify(history));
+        }
+
+        function toggleHistory(show) {
+            const drawer = document.getElementById('history-drawer');
+            drawer.style.transform = show ? 'translateX(0)' : 'translateX(100%)';
+            if (show) renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const history = JSON.parse(localStorage.getItem('tt_history') || '[]');
+            const list = document.getElementById('history-list');
+            if (history.length === 0) {
+                list.innerHTML = `<div class="text-slate-500 text-center mt-20 text-sm italic">無歷史戰績</div>`;
+                return;
+            }
+            list.innerHTML = history.map(h => `
+                <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                    <div class="text-[9px] text-slate-500 mb-2">${h.time}</div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="${h.wA > h.wB ? 'text-blue-400 font-bold' : 'text-slate-400'} text-sm">${h.p1}</span>
+                        <span class="text-lg font-black">${h.wA} : ${h.wB}</span>
+                        <span class="${h.wB > h.wA ? 'text-red-400 font-bold' : 'text-slate-400'} text-sm">${h.p2}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 text-center font-mono">${h.details.map(d => `${d.a}:${d.b}`).join(' | ')}</div>
+                </div>`).join('');
+        }
+
+        function clearAllHistory() {
+            if (confirm("警告：將永久清除此設備上的所有歷史紀錄，確定嗎？")) {
+                localStorage.removeItem('tt_history');
+                renderHistoryList();
+            }
+        }
+
+        function resetMatch() {
+            if (confirm("啟動新比賽？目前比分將存入歷史紀錄。")) location.reload();
         }
     </script>
 </body>
