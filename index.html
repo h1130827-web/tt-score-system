@@ -1,278 +1,31 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>專業桌球紀錄系統 V3 - 全屬性版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .score-btn { transition: all 0.1s; touch-action: manipulation; }
-        .score-btn:active:not(:disabled) { transform: scale(0.95); opacity: 0.8; }
-        @keyframes pulse-yellow { 0%, 100% { background-color: #16a34a; } 50% { background-color: #ca8a04; } }
-        .animate-confirm { animation: pulse-yellow 1.5s infinite; }
-        .history-drawer { transition: transform 0.3s ease-in-out; }
-        select { -webkit-appearance: none; appearance: none; }
-    </style>
-</head>
-<body class="bg-slate-900 text-white font-sans select-none overflow-x-hidden">
+function updateUI() {
+    // ... 前方的換邊與姓名顯示邏輯保持不變 ...
 
-    <div id="setup-modal" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 p-5 rounded-3xl w-full max-w-sm border border-slate-700 shadow-2xl overflow-y-auto max-h-[95vh]">
-            <h2 class="text-xl font-black text-blue-400 mb-4 text-center italic tracking-widest">PLAYER REGISTRATION</h2>
-            
-            <div class="space-y-4">
-                <div id="setup-container" class="space-y-4 text-[11px]">
-                    <div class="p-3 bg-slate-900/50 rounded-2xl border border-blue-500/30">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-blue-500 font-bold">選手 A (第一局左側)</span>
-                            <select id="gender-p1" class="bg-blue-900/30 text-xs px-2 rounded">
-                                <option value="M">🚹 男</option>
-                                <option value="F">🚺 女</option>
-                            </select>
-                        </div>
-                        <input type="text" id="setup-p1" placeholder="輸入姓名" class="w-full bg-slate-800 border-none rounded-lg px-3 py-2 mb-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="hand-p1" class="bg-slate-800 rounded px-2 py-1">
-                                <option value="右">右手</option><option value="左">左手</option>
-                            </select>
-                            <select id="style-p1" class="bg-slate-800 rounded px-2 py-1">
-                                <option value="橫">橫拍</option><option value="直">直拍</option>
-                            </select>
-                            <select id="fh-p1" class="bg-slate-800 rounded px-2 py-1 italic">
-                                <option value="平">正:平面</option><option value="短">正:短顆</option><option value="中">正:中顆</option><option value="長">正:長顆</option><option value="A">正:ANTI</option>
-                            </select>
-                            <select id="bh-p1" class="bg-slate-800 rounded px-2 py-1 italic">
-                                <option value="平">反:平面</option><option value="短">反:短顆</option><option value="中">反:中顆</option><option value="長">反:長顆</option><option value="A">反:ANTI</option>
-                            </select>
-                        </div>
-                    </div>
+    const hi = Math.max(scoreA, scoreB);
+    const lo = Math.min(scoreA, scoreB);
+    const diff = hi - lo;
+    
+    // 判定是否符合 ITTF 結束規則
+    const isSetOver = (hi >= 11 && diff >= 2);
+    
+    const conf = document.getElementById('confirm-btn');
+    const lBtn = document.getElementById('btn-left');
+    const rBtn = document.getElementById('btn-right');
 
-                    <div class="p-3 bg-slate-900/50 rounded-2xl border border-red-500/30">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-red-500 font-bold">選手 B (第一局右側)</span>
-                            <select id="gender-p2" class="bg-red-900/30 text-xs px-2 rounded">
-                                <option value="M">🚹 男</option>
-                                <option value="F">🚺 女</option>
-                            </select>
-                        </div>
-                        <input type="text" id="setup-p2" placeholder="輸入姓名" class="w-full bg-slate-800 border-none rounded-lg px-3 py-2 mb-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="hand-p2" class="bg-slate-800 rounded px-2 py-1">
-                                <option value="右">右手</option><option value="左">左手</option>
-                            </select>
-                            <select id="style-p2" class="bg-slate-800 rounded px-2 py-1">
-                                <option value="橫">橫拍</option><option value="直">直拍</option>
-                            </select>
-                            <select id="fh-p2" class="bg-slate-800 rounded px-2 py-1 italic">
-                                <option value="平">正:平面</option><option value="短">正:短顆</option><option value="中">正:中顆</option><option value="長">正:長顆</option><option value="A">正:ANTI</option>
-                            </select>
-                            <select id="bh-p2" class="bg-slate-800 rounded px-2 py-1 italic">
-                                <option value="平">反:平面</option><option value="短">反:短顆</option><option value="中">反:中顆</option><option value="長">反:長顆</option><option value="A">反:ANTI</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <button onclick="startMatch()" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-lg shadow-lg">START MATCH</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="history-drawer" class="fixed inset-0 bg-slate-950 z-[60] history-drawer translate-x-full flex flex-col p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-black text-blue-400 italic">DATABASE</h2>
-            <button onclick="toggleHistory(false)" class="text-slate-400 text-2xl">✕</button>
-        </div>
-        <div id="history-list" class="flex-grow overflow-y-auto space-y-3"></div>
-        <button onclick="clearHistory()" class="mt-4 text-[10px] text-slate-700 tracking-widest uppercase">Wipe Local Storage</button>
-    </div>
-
-    <div class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
-        <div id="status-bar" class="text-center py-1 bg-slate-800 rounded-full text-[9px] font-bold text-blue-400 mb-3 tracking-widest italic uppercase">Ready to play</div>
-
-        <div class="bg-slate-800 rounded-2xl p-4 border-b-4 border-blue-500 shadow-2xl mb-4 relative">
-            <div class="flex justify-between items-center">
-                <div class="text-center flex-1">
-                    <div id="p1-tags" class="text-[9px] font-bold flex justify-center gap-1 mb-1"></div>
-                    <div id="p1-display" class="text-lg font-black truncate leading-tight">PLAYER A</div>
-                    <div id="wins-a" class="text-6xl font-black italic">0</div>
-                </div>
-                <div class="px-2 text-slate-700 font-black">VS</div>
-                <div class="text-center flex-1">
-                    <div id="p2-tags" class="text-[9px] font-bold flex justify-center gap-1 mb-1"></div>
-                    <div id="p2-display" class="text-lg font-black truncate leading-tight">PLAYER B</div>
-                    <div id="wins-b" class="text-6xl font-black italic">0</div>
-                </div>
-            </div>
-            <div id="winner-tag" class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-4 py-1 rounded-full text-[10px] font-black hidden uppercase">Winner</div>
-        </div>
-
-        <div class="flex gap-4 h-64 mb-4">
-            <button onclick="addPoint('left')" id="btn-left" class="score-btn flex-1 bg-blue-600 rounded-3xl flex flex-col items-center justify-center shadow-[0_6px_0_rgb(30,64,175)]">
-                <span id="label-left" class="text-xs font-bold mb-1 opacity-70">---</span>
-                <span id="score-left" class="text-7xl font-black">0</span>
-            </button>
-            <button onclick="addPoint('right')" id="btn-right" class="score-btn flex-1 bg-red-600 rounded-3xl flex flex-col items-center justify-center shadow-[0_6px_0_rgb(153,27,27)]">
-                <span id="label-right" class="text-xs font-bold mb-1 opacity-70">---</span>
-                <span id="score-right" class="text-7xl font-black">0</span>
-            </button>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <button onclick="undo()" class="bg-slate-700 py-3 rounded-xl font-bold text-sm">↩ UNDO</button>
-            <button id="confirm-btn" onclick="confirmSet()" class="bg-green-600 py-3 rounded-xl font-black">NEXT SET</button>
-        </div>
-
-        <div class="bg-slate-800/40 rounded-2xl p-3 flex-grow border border-slate-700/50 overflow-y-auto">
-            <div id="history-sets" class="space-y-1.5"></div>
-        </div>
+    if (isSetOver) {
+        // 進入防爆狀態
+        conf.classList.add('animate-confirm', 'scale-110'); // 按鈕放大並閃爍
+        conf.innerText = "🛑 點我結束本局";
         
-        <div class="flex justify-between mt-3 px-2">
-            <button onclick="toggleHistory(true)" class="text-blue-500 text-[10px] font-bold uppercase tracking-widest">History</button>
-            <button onclick="resetMatch()" class="text-slate-700 text-[10px] uppercase tracking-widest">New Game</button>
-        </div>
-    </div>
-
-    <script>
-        let p1D = {}, p2D = {}, scoreA = 0, scoreB = 0, winsA = 0, winsB = 0, setsR = [], logS = [];
-
-        function startMatch() {
-            p1D = {
-                n: document.getElementById('setup-p1').value.trim() || "選手 A",
-                g: document.getElementById('gender-p1').value,
-                h: document.getElementById('hand-p1').value,
-                s: document.getElementById('style-p1').value,
-                f: document.getElementById('fh-p1').value,
-                b: document.getElementById('bh-p1').value
-            };
-            p2D = {
-                n: document.getElementById('setup-p2').value.trim() || "選手 B",
-                g: document.getElementById('gender-p2').value,
-                h: document.getElementById('hand-p2').value,
-                s: document.getElementById('style-p2').value,
-                f: document.getElementById('fh-p2').value,
-                b: document.getElementById('bh-p2').value
-            };
-            
-            // 更新 UI 標籤
-            const renderTags = (d, id) => {
-                const color = d.g === 'M' ? 'bg-blue-500' : 'bg-pink-500';
-                document.getElementById(id).innerHTML = `
-                    <span class="${color} text-white px-1.5 rounded-sm">${d.g === 'M' ? '🚹' : '🚺'}</span>
-                    <span class="bg-slate-700 px-1 rounded-sm">${d.h}${d.s}</span>
-                    <span class="bg-slate-700 px-1 rounded-sm">${d.f}/${d.b}</span>
-                `;
-            };
-            renderTags(p1D, 'p1-tags');
-            renderTags(p2D, 'p2-tags');
-            document.getElementById('p1-display').innerText = p1D.n;
-            document.getElementById('p2-display').innerText = p2D.n;
-            
-            document.getElementById('setup-modal').classList.add('hidden');
-            updateUI();
-        }
-
-        function updateUI() {
-            const curSet = winsA + winsB + 1;
-            let swapped = (curSet % 2 === 0);
-            if (curSet === 5 && (scoreA >= 5 || scoreB >= 5)) swapped = !swapped;
-
-            document.getElementById('wins-a').innerText = winsA;
-            document.getElementById('wins-b').innerText = winsB;
-            
-            const lBtn = document.getElementById('label-left'), rBtn = document.getElementById('label-right');
-            lBtn.innerText = swapped ? `${p2D.n} (${p2D.f}/${p2D.b})` : `${p1D.n} (${p1D.f}/${p1D.b})`;
-            rBtn.innerText = swapped ? `${p1D.n} (${p1D.f}/${p1D.b})` : `${p2D.n} (${p2D.f}/${p2D.b})`;
-            
-            document.getElementById('score-left').innerText = swapped ? scoreB : scoreA;
-            document.getElementById('score-right').innerText = swapped ? scoreA : scoreB;
-
-            const hi = Math.max(scoreA, scoreB), lo = Math.min(scoreA, scoreB), isO = (hi >= 11 && (hi-lo >= 2));
-            const stat = document.getElementById('status-bar'), conf = document.getElementById('confirm-btn');
-
-            if (winsA === 3 || winsB === 3) {
-                stat.innerText = "Match Completed";
-                document.getElementById('winner-tag').classList.remove('hidden');
-                document.getElementById('winner-tag').style.left = (winsA > winsB) ? '25%' : '75%';
-                saveMatch();
-            } else if (isO) {
-                stat.innerText = "Set Point - Close Now";
-                conf.classList.add('animate-confirm');
-            } else {
-                stat.innerText = `Set ${curSet} - Active`;
-                conf.classList.remove('animate-confirm');
-            }
-        }
-
-        function addPoint(s) {
-            if (winsA === 3 || winsB === 3) return;
-            const cur = winsA + winsB + 1;
-            let swp = (cur % 2 === 0);
-            if (cur === 5 && (scoreA >= 5 || scoreB >= 5)) swp = !swp;
-            if (s === 'left') { swp ? scoreB++ : scoreA++; logS.push('l'); }
-            else { swp ? scoreA++ : scoreB++; logS.push('r'); }
-            updateUI();
-        }
-
-        function undo() {
-            if (logS.length === 0) return;
-            const last = logS.pop();
-            const cur = winsA + winsB + 1;
-            let swp = (cur % 2 === 0);
-            if (cur === 5 && (scoreA >= 5 || scoreB >= 5)) swp = !swp;
-            if (last === 'l') { swp ? scoreB-- : scoreA--; } else { swp ? scoreA-- : scoreB--; }
-            updateUI();
-        }
-
-        function confirmSet() {
-            if (Math.max(scoreA, scoreB) >= 11 && Math.abs(scoreA-scoreB) >= 2) {
-                setsR.push({a: scoreA, b: scoreB});
-                scoreA > scoreB ? winsA++ : winsB++;
-                scoreA = 0; scoreB = 0; logS = [];
-                document.getElementById('history-sets').innerHTML = setsR.map((s, i) => `
-                    <div class="flex justify-between bg-slate-800/80 px-4 py-1.5 rounded-lg border border-slate-700 text-[10px] font-mono">
-                        <span class="text-slate-500">SET ${i+1}</span>
-                        <span class="${s.a > s.b ? 'text-blue-400 font-bold' : 'text-red-400'}">${s.a}:${s.b}</span>
-                    </div>`).join('');
-                updateUI();
-            }
-        }
-
-        function saveMatch() {
-            const m = { id: Date.now(), p1: p1D, p2: p2D, w1: winsA, w2: winsB, h: setsR, d: new Date().toLocaleString() };
-            let all = JSON.parse(localStorage.getItem('tt_v3') || '[]');
-            if (all.length > 0 && all[0].id > Date.now() - 5000) return;
-            all.unshift(m);
-            localStorage.setItem('tt_v3', JSON.stringify(all));
-        }
-
-        function toggleHistory(s) {
-            document.getElementById('history-drawer').style.transform = s ? 'translateX(0)' : 'translateX(100%)';
-            if (s) {
-                const all = JSON.parse(localStorage.getItem('tt_v3') || '[]');
-                document.getElementById('history-list').innerHTML = all.map(m => `
-                    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-xl">
-                        <div class="flex justify-between text-[8px] text-slate-600 mb-2 uppercase font-mono">
-                            <span>${m.d}</span>
-                            <span class="bg-slate-800 px-1 rounded">V3 Core</span>
-                        </div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="flex-1 text-center">
-                                <div class="text-[8px] ${m.p1.g === 'M' ? 'text-blue-400' : 'text-pink-400'}">${m.p1.h}${m.p1.s} ${m.p1.f}/${m.p1.b}</div>
-                                <div class="text-xs font-bold truncate">${m.p1.n}</div>
-                            </div>
-                            <div class="text-lg font-black italic px-2">${m.w1}:${m.w2}</div>
-                            <div class="flex-1 text-center">
-                                <div class="text-[8px] ${m.p2.g === 'M' ? 'text-blue-400' : 'text-pink-400'}">${m.p2.h}${m.p2.s} ${m.p2.f}/${m.p2.b}</div>
-                                <div class="text-xs font-bold truncate">${m.p2.n}</div>
-                            </div>
-                        </div>
-                    </div>`).join('') || '<p class="text-center text-slate-700 mt-20 italic">No Database Found</p>';
-            }
-        }
-
-        function clearHistory() { if(confirm("Permanently wipe local history?")) { localStorage.removeItem('tt_v3'); toggleHistory(true); } }
-        function resetMatch() { if(confirm("Abandon current and start new?")) location.reload(); }
-    </script>
-</body>
-</html>
+        // 讓加分按鈕變暗，暗示不可點擊
+        lBtn.style.opacity = "0.3";
+        rBtn.style.opacity = "0.3";
+    } else {
+        conf.classList.remove('animate-confirm', 'scale-110');
+        conf.innerText = "NEXT SET";
+        lBtn.style.opacity = "1";
+        rBtn.style.opacity = "1";
+    }
+    
+    // ... 其他局分紀錄顯示邏輯 ...
+}
